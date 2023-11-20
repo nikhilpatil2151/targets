@@ -1,0 +1,228 @@
+
+Assignment No ¡V B2     
+
+Title: Implement aggregation and indexing with suitable example using MongoDB
+
+Problem Statement: Create an orders collection with keys order_id, cust_id, cust_name, phone_no(array field), email_id(optional field), item_name, DtOfOrder, quantity, amount, status(P :pending/D:delivered)
+----------------------------------------------------------------
+Queries ¡V
+
+1. Create a simple index on cust_id and also create a simple index on Item_name. Try to make a duplicate entry.
+
+use b2
+
+b2> db.createCollection("orders");
+
+
+b2> db.orders.createIndex({ cust_id: 1 })
+
+cust_id_1
+
+b2> db.orders.createIndex({ item_name: 1 })
+
+item_name_1
+
+b2> db.orders.insertOne({
+     order_id: 2,
+     cust_id: 101,  // This cust_id already exists
+     cust_name: "Jane Doe",
+     phone_no: ["5555555555"],
+     email_id: "jane.doe@example.com",
+     item_name: "Product B",
+     DtOfOrder: new Date("2023-10-18T12:00:00Z"),
+     quantity: 1,
+     amount: 50.25,
+     status: "P"
+ })
+
+b2> db.orders.getIndexes()
+
+
+2. Create unique index on the order_id key and try to make duplicate entry.
+
+b2> db.orders.createIndex({ order_id: 1 }, { unique: true })
+order_id_1
+
+b2> db.orders.insertOne({ order_id: 2, cust_id: 101, /* This cust_id already exists*/ cust_name: "Jane Doe", phone_no: ["5555555555"], email_id: "jane.doe@example.com", item_name: "Product B", DtOfOrder: new Date("2023-10-18T12:00:00Z"), quantity: 1, amount: 50.25, status: "P" })
+
+MongoServerError: E11000 duplicate key error collection: b2.orders index: order_id_1 dup key: { order_id: 2 }
+
+
+3. Create a multikey index on phone_no and find the customers with 2 phone numbers.
+
+b2> db.orders.createIndex({ phone_no: 1 }, { multikey: true })
+phone_no_1
+
+b2> db.orders.find({ phone_no: { $size: 1 } })
+[
+  {
+    _id: ObjectId("652dacdb86073509c15f76d1"),
+    order_id: 1,
+    cust_id: 101,
+    cust_name: 'John Doe',
+    phone_no: [ '1234567890', '9876543210' ],
+    email_id: 'john.doe@example.com',
+    item_name: 'Product A',
+    DtOfOrder: ISODate("2023-10-17T12:00:00.000Z"),
+    quantity: 2,
+    amount: 100.5,
+    status: 'P'
+  }
+]
+
+4. Create a sparse index on email_id key and show the effects with and without indexing. 
+
+b2> db.orders.find({ email_id: { $exists: true } }).explain()
+{
+  explainVersion: '2',
+  queryPlanner: {
+    namespace: 'b2.orders',
+    indexFilterSet: false,
+    parsedQuery: { email_id: { '$exists': true } },
+    queryHash: '3A720C84',
+    planCacheKey: '3B778558',
+    maxIndexedOrSolutionsReached: false,
+    maxIndexedAndSolutionsReached: false,
+    maxScansToExplodeReached: false,
+    winningPlan: {
+      queryPlan: {
+        stage: 'COLLSCAN',
+        planNodeId: 1,
+        filter: { email_id: { '$exists': true } },
+        direction: 'forward'
+      },
+      slotBasedPlan: {
+        slots: '$$RESULT=s5 env: { s3 = 1697492884775 (NOW), s2 = Nothing (SEARCH_META), s1 = TimeZoneDatabase(America/Detroit...Europe/Vienna) (timeZoneDB) }',
+        stages: '[1] filter {\n' +
+          '    let [\n' +
+          '        l1.0 = s4 \n' +
+          '    ] \n' +
+          '    in exists(l1.0) \n' +
+          '} \n' +
+          '[1] scan s5 s6 none none none none lowPriority [s4 = email_id] @"e67fe1d2-b9e7-4251-87e1-02ecc3abef67" true false '
+      }
+    },
+    rejectedPlans: []
+  },
+  command: {
+    find: 'orders',
+    filter: { email_id: { '$exists': true } },
+    '$db': 'b2'
+  },
+  serverInfo: {
+    host: 'R2-D2',
+    port: 27017,
+    version: '7.0.2',
+    gitVersion: '02b3c655e1302209ef046da6ba3ef6749dd0b62a'
+  },
+  serverParameters: {
+    internalQueryFacetBufferSizeBytes: 104857600,
+    internalQueryFacetMaxOutputDocSizeBytes: 104857600,
+    internalLookupStageIntermediateDocumentMaxSizeBytes: 104857600,
+    internalDocumentSourceGroupMaxMemoryBytes: 104857600,
+    internalQueryMaxBlockingSortMemoryUsageBytes: 104857600,
+    internalQueryProhibitBlockingMergeOnMongoS: 0,
+    internalQueryMaxAddToSetBytes: 104857600,
+    internalDocumentSourceSetWindowFieldsMaxMemoryBytes: 104857600,
+    internalQueryFrameworkControl: 'trySbeEngine'
+  },
+  ok: 1
+}
+
+b2> db.orders.createIndex({ email_id: 1 }, { sparse: true })
+email_id_1
+
+b2> db.orders.find({ email_id: { $exists: true } }).explain()
+
+
+5. Display all indexes created on order collection and Also show the size of indexes.
+
+b2> db.orders.getIndexes()
+
+b2> db.orders.totalIndexSize()
+188416
+
+6. Delete all indexes
+
+b2>  db.orders.dropIndexes()
+
+
+7. A) Find Total no of orders received so far
+
+b2> db.orders.find({Status:'D'}).count()
+1
+
+   B) How many orders are pending.
+
+b2> db.orders.find({Status:'P'}).count()
+2
+
+8. Show results and details of sorting documents based on amount
+
+b2> db.orders.distinct("cust_name")
+[ 'Jane Doe', 'John Doe' ]
+
+9. A) Find Total no of orders received so far
+
+b2> db.orders.find({Status:'D'}).count()
+1
+
+   B) How many orders are pending.
+
+b2> db.orders.find({Status:'P'}).count()
+3
+
+
+10. Show results and details of sorting documents based on amount
+
+b2> db.orders.find().sort({Amt:1}).pretty()
+
+
+
+11. Show how many orders are placed by each customer.
+
+b2>db.orders.aggregate({$group:{_id:"$Cust_name",cnt_of_order:{$sum:1}}})
+
+
+12. Display all customer ids and their total pending order amount in descending order.
+
+b2> db.orders.aggregate([
+    	{$match: { status: "P" }},{$group: {_id: "$cust_id",
+totalPendingAmount: { $sum: "$amount" }}},{$sort: { totalPendingAmount: 1 }}])
+
+[
+  { _id: 101, totalPendingAmount: 150.75 },
+  { _id: 104, totalPendingAmount: 100.5 },
+  { _id: 102, totalPendingAmount: 50.25 }
+]
+
+13. Display all customer ids in ascending order with total order amount which have been is delivered.
+
+b2> db.orders.aggregate([{$match: { status: "D" } },{$group: {_id: "$cust_id",totalOrderAmount: { $sum: "$amount" }}},{$sort: { _id: 1 }}])
+
+[
+  { _id: 103, totalOrderAmount: 150.75 },
+  { _id: 105, totalOrderAmount: 120 }
+]
+
+14. Show top three Selling Items from orders collection
+
+b2> db.orders.aggregate({$group:{_id:"$Item_name",totqty:{$sum:"$Qty"}}}, {$sort:{totqty:-1}},{$limit:3})
+
+[
+  { "_id": "Product B", "totalQuantity": 9 },
+  { "_id": "Product A", "totalQuantity": 7 },
+  { "_id": "Product C", "totalQuantity": 4 }
+]
+
+15. Find the date on which maximum orders are received.
+
+b2> db.orders.aggregate([{ $group: { _id: "$DtOfOrder", orderCount: { $sum: 1 } } }, { $sort: { orderCount: -1 } }, { $limit: 1 }])
+
+[ { _id: ISODate("2023-10-18T12:00:00.000Z"), orderCount: 2 } ]
+
+16. Find which customer has placed maximum orders.
+
+b2> db.orders.aggregate([{ $group: { _id: "$cust_id", orderCount: { $sum: 1 } } }, { $sort: { orderCount: -1 } }, { $limit: 1 }])
+
+[ { _id: 101, orderCount: 2 } ]

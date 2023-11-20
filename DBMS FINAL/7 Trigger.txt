@@ -1,0 +1,102 @@
+mysql> create database trigger1;
+
+mysql> use trigger1;
+
+mysql> CREATE TABLE library(B_id int,title varchar (20), authors varchar(20), edition int, no_of_copies int);
+
+mysql> CREATE TABLE lib_audit(B_id int, title varchar(20), edition int, no_of_copies int, date_of_mod datetime, type_of_op varchar(20), username varchar(20));
+
+mysql> CREATE TABLE transaction (t_id int, B_id int, i_r varchar(10), no_of_copies int);
+
+mysql> INSERT INTO library VALUES
+    ->          (1, "TOC", "V.V.Richard", 2, 4),
+    ->           (2, "CN", "Forouzan", 4, 5),
+    ->           (3, "ISEE", "Rahul De", 3, 5),
+    ->           (4, "DBMS", "Silberschatz", 3, 2),
+    ->           (5, "SEPM", "Pressman", 5, 6);
+Query OK, 5 rows affected (0.01 sec)
+Records: 5  Duplicates: 0  Warnings: 0
+
+mysql> DELIMITER //
+
+mysql> CREATE TRIGGER t_d AFTER UPDATE ON library
+    ->   FOR EACH ROW
+    -> BEGIN
+    ->  DECLARE b VARCHAR(20);
+    ->  SET b = 'deleted';
+    ->  INSERT INTO lib_audit (B_id, title, edition, no_of_copies, date_of_mod, type_of_op, username)
+    ->  VALUES (OLD.B_id, OLD.title, OLD.edition, OLD.no_of_copies, CURDATE(), b, CURRENT_USER());
+    -> END //
+Query OK, 0 rows affected (0.01 sec)
+
+mysql> UPDATE library
+    ->  SET authors = 'Kapil Mishra',
+    ->    title = 'TOC',
+    ->    edition = 2,
+    ->    no_of_copies = 4
+    ->  WHERE B_id = 1;
+    -> //
+Query OK, 1 row affected (0.01 sec)
+Rows matched: 1  Changed: 1  Warnings: 0
+
+mysql> select * from lib_audit;
+    -> //
++------+-------+---------+--------------+---------------------+------------+----------------+
+| B_id | title | edition | no_of_copies | date_of_mod         | type_of_op | username       |
++------+-------+---------+--------------+---------------------+------------+----------------+
+|    1 | TOC   |       2 |            4 | 2023-11-16 00:00:00 | deleted    | root@localhost |
++------+-------+---------+--------------+---------------------+------------+----------------+
+1 row in set (0.00 sec)
+
+mysql> CREATE TRIGGER t_d AFTER DELETE ON library
+    ->   FOR EACH ROW
+    -> BEGIN
+    ->  DECLARE b VARCHAR(20);
+    ->  SET b = 'deleted';
+    ->  INSERT INTO lib_audit (B_id, title, edition, no_of_copies, date_of_mod, type_of_op, username)
+    ->  VALUES (OLD.B_id, OLD.title, OLD.edition, OLD.no_of_copies, CURDATE(), b, CURRENT_USER());
+    -> END //
+Query OK, 0 rows affected (0.01 sec)
+
+mysql>  DELETE FROM library where B_id = 2;
+    -> //
+Query OK, 1 row affected (0.01 sec)
+
+mysql> select * from lib_audit;
+    -> //
++------+-------+---------+--------------+---------------------+------------+----------------+
+| B_id | title | edition | no_of_copies | date_of_mod         | type_of_op | username       |
++------+-------+---------+--------------+---------------------+------------+----------------+
+|    1 | TOC   |       2 |            4 | 2023-11-16 00:00:00 | deleted    | root@localhost |
+|    2 | CN    |       4 |            5 | 2023-11-16 00:00:00 | deleted    | root@localhost |
++------+-------+---------+--------------+---------------------+------------+----------------+
+2 rows in set (0.00 sec)
+
+mysql> CREATE TRIGGER t2 BEFORE INSERT ON transaction
+    ->   FOR EACH ROW
+    -> BEGIN
+    ->   DECLARE no INT;
+    ->   IF NEW.i_r = 'I' THEN
+    ->       SELECT no_of_copies INTO no FROM library WHERE B_id = NEW.B_id;
+    ->       IF NEW.no_of_copies > no THEN
+    ->             SET NEW.no_of_copies = no;
+    ->         END IF;
+    ->     END IF;
+    -> END //
+Query OK, 0 rows affected (0.01 sec)
+
+mysql> INSERT INTO transaction VALUES (10, 1, 'I', 3);
+    -> //
+Query OK, 1 row affected (0.01 sec)
+
+mysql> select * from library;
+    -> //
++------+-------+--------------+---------+--------------+
+| B_id | title | authors      | edition | no_of_copies |
++------+-------+--------------+---------+--------------+
+|    1 | TOC   | Kapil Mishra |       2 |            4 |
+|    3 | ISEE  | Rahul De     |       3 |            5 |
+|    4 | DBMS  | Silberschatz |       3 |            2 |
+|    5 | SEPM  | Pressman     |       5 |            6 |
++------+-------+--------------+---------+--------------+
+4 rows in set (0.00 sec)

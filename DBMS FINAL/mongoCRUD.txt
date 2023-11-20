@@ -1,0 +1,155 @@
+mongosh
+
+show dbs;
+
+Assignment No – B1       
+
+Title: Design and Develop MongoDB Queries using CRUD operations. (Use CRUD operations, SAVE method, logical operators.
+
+Problem Statement: Create an Articles Collection and perform basic operations (CRUD) like Insert, Display,Update and Delete operations. E.g., Articles (Tittle, Content, Author, Author_age, Dop, Category, Comment). Comment is an embedded document also an array. Comment may consist of Name, Remarks keys
+
+----------------------------------------------------------------
+QUERIES –
+
+1. Insert couple of Documents.
+
+test> use b1
+
+b1> db.article.insertMany([
+ {"Title": "Introduction to MongoDB","Content": "MongoDB is a NoSQL Database",
+"Author": "John Doe",
+ "Author_age": 30,
+ "Dop": "17-10-2023",
+ "Category": "Database",
+ "Comments": [
+ { "user": "Sam Brown", "comment": "I learned a lot!" },
+ { "user": "Alice Green", "comment": "Thank you for sharing." }
+  ]}, 
+ {"Title": "Web Development",
+ "Content": "Use of MERN",
+"Author": "Jane Doe",
+ "Dop": "16-10-2023",
+"Category": "Web",
+ "Comments": [
+ { "user": "Jane Smith", "comment": "Great article!" },
+ { "user": "Bob Johnson", "comment": "Very informative." }
+ ]},
+ {"Title": 'Cricket Strategies for Success',
+  "Content": 'Effective strategies for winning cricket matches...',
+  "Author": 'Rohit Sharma',
+  "Author_age": 34,
+  "Dop": ISODate("2023-10-18T09:45:00.000Z"),
+  "Category": 'Sports',
+  "Comments": [
+    { "user": 'Sara Williams', comment: 'Fantastic article!' },
+    { "user": 'David Lee', comment: 'I learned a lot about cricket.' }
+  ]}
+ ])
+
+2. Display the first document found in database.
+
+b1> db.article.findOne()
+
+
+
+3. Display first document belonging to a certain Author say “Sharma” found in database.
+
+b1>  db.article.findOne({Author:"Rohit Sharma"})
+{
+  _id: ObjectId("652d9ddc07c463bba275588c"),
+  Title: 'Cricket Strategies for Success',
+  Content: 'Effective strategies for winning cricket matches...',
+  Author: 'Rohit Sharma',
+  Author_age: 34,
+  Dop: ISODate("2023-10-18T09:45:00.000Z"),
+  Category: 'Sports',
+  Comments: [
+    { user: 'Sara Williams', comment: 'Fantastic article!' },
+    { user: 'David Lee', comment: 'I learned a lot about cricket.' }
+  ]
+}
+
+4. Modify the comment made by certain person on a certain article.
+
+b1> db.article.update(
+ { "Title": "Cricket Strategies for Success", "Comments.user": "David Lee" },
+ { $set: { "Comments.$.comment": "I thoroughly enjoyed reading this article!" } })
+
+
+b1> db.article.findOne({ "Title": "Cricket Strategies for Success" })
+{
+  _id: ObjectId("652d9ddc07c463bba275588c"),
+  Title: 'Cricket Strategies for Success',
+  Content: 'Effective strategies for winning cricket matches...',
+  Author: 'Rohit Sharma',
+  Author_age: 34,
+  Dop: ISODate("2023-10-18T09:45:00.000Z"),
+  Category: 'Sports',
+  Comments: [
+    { user: 'Sara Williams', comment: 'Fantastic article!' },
+    {
+      user: 'David Lee',
+      comment: 'I thoroughly enjoyed reading this article!'
+    }]}
+    
+5. Insert record with save method with and without objectID
+
+b1> db.article.insertOne ({
+  "Title": "New Article Without ID",
+  "Content": "This is a new article without an explicit _id field.",
+  "Author": "John Doe",
+  "Author_age": 30,
+  "Dop": new Date("2023-10-19T14:30:00Z"),
+  "Category": "Technology",
+  "Comments": [
+    { "user": "Jane Smith", "comment": "Great article!" },
+    { "user": "Bob Johnson", "comment": "Very informative." }
+  ]
+})
+
+
+
+b1> db.article.insertOne ({
+  "_id": 7,
+  "Title": "New Article With Explicit ID",
+  "Content": "This is a new article with an explicit _id field.",
+  "Author": "Jane Doe",
+  "Author_age": 28,
+  "Dop": new Date("2023-10-18T12:00:00Z"),
+  "Category": "Science",
+  "Comments": [
+    { "user": "Sam Brown", "comment": "I learned a lot!" },
+    { "user": "Alice Green", "comment": "Thank you for sharing." }
+  ]
+})
+
+
+6. Update collection with save method.
+
+b1> db.article.updateOne(
+ { _id: 7 },
+ { $set: { "Author": "Virat Kohli" } })
+
+
+
+7. Add one more comment for particular title.
+
+b1> db.article.updateOne({_id: 7},{$push: {Comments:{user:"Hope", comment: "Bad"}}})
+
+b1> db.article.findOne({_id:7})
+
+
+8. Delete the documents whose author age is less than 18.
+
+b1> db.article.deleteOne( { Author_age: { $lt: 18 } } )
+
+
+9. Delete All Documents from a Collection
+
+b1> db.article.deleteMany({})
+
+
+10. Delete the Article collection
+
+b1> db.article.drop()
+
